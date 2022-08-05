@@ -5,6 +5,8 @@ import (
 	"fmt"
 	"log"
 	"net"
+	"strconv"
+	"time"
 
 	"golang.org/x/net/ipv4"
 )
@@ -16,6 +18,10 @@ func main() {
 	flag.IntVar(&port, "port", 8080, "Multicast port")
 	var intf string
 	flag.StringVar(&intf, "interface", "en0", "Interface name")
+	var printPayload bool
+	flag.BoolVar(&printPayload, "payload", false, "Print payload")
+	var enableTimeDiff bool
+	flag.BoolVar(&enableTimeDiff, "time-diff", false, "Enable time difference")
 	flag.Parse()
 
 	en0, err := net.InterfaceByName(intf)
@@ -80,7 +86,23 @@ func main() {
 		if cm.Dst.IsMulticast() {
 			if cm.Dst.Equal(group) {
 				// joined group, do something
-				log.Println("received multicast packet from: ", src, "data: ", string(b[:n]))
+				if enableTimeDiff {
+					senderNano, err := strconv.Atoi(string(b[:n]))
+					if err != nil {
+						fmt.Println("error converting sender time to Nano, please enable -time-diff on sender")
+						continue
+					}
+					diffInNano := time.Now().UnixNano() - int64(senderNano)
+					fmt.Println("diffInMicroSeconds: ", diffInNano/1000)
+					continue
+				}
+
+				if printPayload {
+					fmt.Println("received multicast packet from: ", src, "data: ", string(b[:n]))
+				} else {
+					fmt.Print(".")
+				}
+
 			} else {
 				// unknown group, discard
 				continue

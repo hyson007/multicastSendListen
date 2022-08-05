@@ -1,6 +1,7 @@
 package main
 
 import (
+	"crypto/rand"
 	"flag"
 	"fmt"
 	"log"
@@ -10,6 +11,8 @@ import (
 
 	"golang.org/x/net/ipv4"
 )
+
+var data []byte
 
 func main() {
 	var address string
@@ -22,6 +25,10 @@ func main() {
 	flag.IntVar(&rate, "rate", 1, "packet rate per second")
 	var ttl int
 	flag.IntVar(&ttl, "ttl", 16, "TTL value")
+	var enableTimeDiff bool
+	flag.BoolVar(&enableTimeDiff, "time-diff", false, "Enable time difference")
+	var packetLen int
+	flag.IntVar(&packetLen, "len", 8, "Packet payload length")
 	flag.Parse()
 
 	interFace, err := net.InterfaceByName(intf)
@@ -40,7 +47,7 @@ func main() {
 	// if _, err := p.WriteTo(data, nil, src); err != nil {
 	// 	// error handling
 	// }
-
+	fmt.Println("Sending packets to", group.String(), "port", port, "on", intf)
 	dst := &net.UDPAddr{IP: group, Port: port}
 	for {
 		for _, ifi := range []*net.Interface{interFace} {
@@ -48,9 +55,15 @@ func main() {
 				log.Println("error setting multicast interface")
 			}
 			p.SetMulticastTTL(ttl)
-			Payload := time.Now().UnixNano()
-			PayloadString := strconv.FormatInt(Payload, 10)
-			data := []byte(PayloadString)
+			if enableTimeDiff {
+				Payload := time.Now().UnixNano()
+				PayloadString := strconv.FormatInt(Payload, 10)
+				data = []byte(PayloadString)
+			} else {
+				data = make([]byte, packetLen)
+				rand.Read(data)
+			}
+
 			if _, err := p.WriteTo(data, nil, dst); err != nil {
 				log.Println("error write multicast")
 			}
