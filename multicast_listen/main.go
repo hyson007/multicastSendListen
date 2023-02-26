@@ -94,10 +94,9 @@ func receivePackets(cmd *cobra.Command, args []string) {
 		n, _, err := conn.ReadFromUDP(buf)
 		_ = n
 		if err != nil {
-			log.Print(".")
 			continue
 		}
-
+		fmt.Print(".")
 		// if enableTimeDiff {
 		// 	senderNano, err := strconv.Atoi(string(buf[:n]))
 		// 	if err != nil {
